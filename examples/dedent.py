@@ -1,7 +1,7 @@
 from custom_literals import literal
 import textwrap
 
-@literal(str, name="d", strict=True)
+@literal(str, name="d")
 def dedented(self):
     return textwrap.dedent(self).strip()
 

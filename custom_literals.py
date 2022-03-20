@@ -2,6 +2,30 @@
 A module implementing custom literal suffixes for literal values using pure Python.
 
 (c) RocketRace 2022-present. See LICENSE file for more.
+
+Examples
+--------
+
+See the `examples/` directory for more.
+```py
+from custom_literals import literal
+from datetime import timedelta
+
+@literal(float, int, name="s")
+def seconds(self):
+    return timedelta(seconds=self)
+
+@literal(float, int, name="m")
+def minutes(self):
+    return timedelta(seconds=60 * self)
+
+@literal(float, int, name="h")
+def hours(self):
+    return timedelta(seconds=3600 * self)
+
+print(10 .s) # 0:00:10
+print(1.5.m) # 0:01:30
+```
 '''
 from __future__ import annotations
 
@@ -36,7 +60,7 @@ class _LiteralDescriptor(Generic[_TargetT, _ReturnT]):
     def __get__(self, obj: _TargetT, _owner=None) -> _ReturnT:
         if self.strict:
             if type(obj) is not self.cls:
-                raise TypeError(f"the custom literal `{self.cls.__qualname__}.{self.name}` with `final=True` cannot be applied to values of type `{type(obj).__qualname__}`")
+                raise TypeError(f"the custom literal `{self.cls.__qualname__}.{self.name}` cannot be applied to values of type `{type(obj).__qualname__}`")
 
             current_frame = inspect.currentframe()
             # Running on a different python implementation

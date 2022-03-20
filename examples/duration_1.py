@@ -13,9 +13,6 @@ def minutes(self):
 def hours(self):
     return timedelta(seconds=3600 * self)
 
-# int is a child of float, so it's allowed
-print(15 .s)
-print(0.75.m)
-# unintuitively, bool is also allowed since
-# it's a direct subclass of int
-print(True .h)
+print(10 .s) # 0:00:10
+print(1.5.m) # 0:01:30
+
