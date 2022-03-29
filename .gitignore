@@ -2,3 +2,4 @@
 .venv/
 .git/
 .DS_Store
+.vscode/
