@@ -348,7 +348,7 @@ def unliteral(target: _AllowedTarget, /, name: str):
     _unhook_literal(type, name=name)
 
 @contextmanager
-def literally(*targets: _AllowedTarget, name: str, fn: Callable[[_LiteralT], Any], strict: bool = True) -> Iterator[None]:
+def literally(*targets: _AllowedTarget, **fns: Callable[[_LiteralT], Any]) -> Iterator[None]:
     '''A context manager for temporarily defining custom literals.
 
     Examples
@@ -357,7 +357,7 @@ def literally(*targets: _AllowedTarget, name: str, fn: Callable[[_LiteralT], Any
     ```py
     from datetime import datetime
 
-    with literally(int, "unix", datetime.fromtimestamp):
+    with literally(int, unix=datetime.fromtimestamp):
         print((1647804818).unix) # 2022-03-20 21:33:38
     ```
 
@@ -367,16 +367,9 @@ def literally(*targets: _AllowedTarget, name: str, fn: Callable[[_LiteralT], Any
     *targets: type
         The types to define the literal for.
 
-    name: str
-        The name of the literal suffix used.
-
-    fn: (type -> Any)
-        The function to call when the literal is invoked.
-
-    strict: bool
-        If the custom literal is invoked for objects other than
-        constant literals in the source code, raises `TypeError`.
-        By default, this is `True`.
+    **fns: (type -> Any)
+        The functions to call when the literal is invoked. The name
+        of the keyword argument is used as the name of the custom literal.
 
     Raises
     ------
@@ -387,11 +380,13 @@ def literally(*targets: _AllowedTarget, name: str, fn: Callable[[_LiteralT], Any
     '''
     types = [_to_type(target) for target in targets]
     for type in types:
-        descriptor = _LiteralDescriptor(type, fn, name=name, strict=strict)
-        _hook_literal(type, name, descriptor)
+        for name, fn in fns.items():
+            descriptor = _LiteralDescriptor(type, fn, name=name, strict=True)
+            _hook_literal(type, name, descriptor)
     yield
     for type in types:
-        _unhook_literal(type, name=name)
+        for name in fns:
+            _unhook_literal(type, name=name)
 
 def is_hooked(target: _AllowedTarget, /, name: str) -> bool:
     '''Returns whether the given custom literal is 
