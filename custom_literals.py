@@ -349,8 +349,13 @@ def unliteral(target: _AllowedTarget, /, name: str):
     _unhook_literal(type, name=name)
 
 @contextmanager
-def literally(*targets: _AllowedTarget, **fns: Callable[[_LiteralT], Any]) -> Iterator[None]:
+def literally(*targets: _AllowedTarget, strict: bool = True, **fns: Callable[[_LiteralT], Any]) -> Iterator[None]:
     '''A context manager for temporarily defining custom literals.
+
+    Note: Due to the overlap in function signature, it is not possible to use
+    `literally` to define a custom literal named `strict`. To avoid this,
+    you can manually hook and unhook your custom literal using `@literal` and
+    `@unliteral` respectively.
 
     Examples
     --------
@@ -382,7 +387,7 @@ def literally(*targets: _AllowedTarget, **fns: Callable[[_LiteralT], Any]) -> It
     types = [_to_type(target) for target in targets]
     for type in types:
         for name, fn in fns.items():
-            descriptor = _LiteralDescriptor(type, fn, name=name, strict=True)
+            descriptor = _LiteralDescriptor(type, fn, name=name, strict=strict)
             _hook_literal(type, name, descriptor)
     yield
     for type in types:
