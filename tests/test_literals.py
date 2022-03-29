@@ -201,3 +201,19 @@ class TestLiteral(unittest.TestCase):
         finally:
             unliteral(str, "u")
             unliteral(str, "l")
+
+    def test_class_with_lie(self):
+        try:
+            @literals(str)
+            class Foo(lie(str)):
+                @rename("bar")
+                def bees(self):
+                    return "correct"
+            
+            self.assertEqual("aa".bar, "correct", "renamed class based hook failed")
+
+        finally:
+            unliteral(str, "bar")
+
+        with self.assertRaises(AttributeError, msg="renamed class based unhook failed"):
+            "aa".bar

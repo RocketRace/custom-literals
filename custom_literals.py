@@ -45,6 +45,8 @@ __all__ = (
     "literally",
     "unliteral",
     "rename",
+    "is_hooked",
+    "lie",
     "ALLOWED_TARGETS"
 )
 
@@ -469,3 +471,39 @@ def rename(name: str) -> Callable[[Callable[[_LiteralT], _ReturnT]], Callable[[_
     def inner(fn: Callable[[_LiteralT], _ReturnT]) -> Callable[[_LiteralT], _ReturnT]:
         return _RenamedFunction(fn, name)
     return inner
+
+def lie(target: type[_LiteralT], /) -> type[_LiteralT]:
+    '''A utility function for lying to type checkers.
+    Useful in conjunction with class-based custom literals
+    using `@literals`, since the type checker cannot infer
+    the type of `self` in methods to be compatible with
+    the target types.
+
+    The signature of this function is a lie. It does not actually
+    return the input type, but instead returns `object`. This 
+    makes it a no-op when used as the base class in a class definition,
+    whilst tricking some static analysis tools into thinking that
+    the resulting class is a subclass of the input type.
+
+    Examples
+    --------
+    ```py
+    @literals(int)
+    class Naughty(lie(int)):
+        # lie is marked to return `int`, meaning
+        # `self` is assumed to subclass `int`.
+        @rename("s")
+        def successor(self):
+            # type checkers may otherwise complain that
+            # `Naughty + int` is not a valid operation.
+            return self + 1
+    ```
+
+    Parameters
+    ----------
+
+    target: type
+        The type to lie about.
+    '''
+    # this type-ignore comment cannot be removed, by design
+    return object # type: ignore
