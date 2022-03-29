@@ -322,7 +322,8 @@ def unliteral(target: _AllowedTarget, /, name: str):
 
     print(1647804818.unix) # 2022-03-20 21:33:38
 
-    unliteral(int, "unix")    
+    unliteral(int, "unix") 
+    assert not hasattr(int, "unix")
     ```
 
     Parameters
