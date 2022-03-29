@@ -373,6 +373,11 @@ def literally(*targets: _AllowedTarget, strict: bool = True, **fns: Callable[[_L
     *targets: type
         The types to define the literals for.
 
+    strict: bool
+        If the custom literal is invoked for objects other than
+        constant literals in the source code, raises `TypeError`.
+        By default, this is `True`.
+
     **fns: (type -> Any)
         The functions to call when the literal is invoked. The name
         of the keyword argument is used as the name of the custom literal.
