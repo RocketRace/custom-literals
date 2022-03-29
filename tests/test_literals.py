@@ -6,31 +6,31 @@ class TestLiteral(unittest.TestCase):
     def run_multiple_hooks(self, number):
         import itertools
         for combination in itertools.combinations(ALLOWED_TARGETS, number):
+            with self.subTest(combination=combination):
+                def foo(self):
+                    return "correct"
 
-            def foo(self):
-                return "correct"
+                literal(*combination)(foo)
+                try:
+                    for target in combination:
+                        self.assert_(hasattr(target, "foo"), f"target hook failed for {target}")
+                    
+                    target_type = lambda target: target if isinstance(target, type) else type(target)
+                    combination_types = tuple(map(target_type, combination))
+                    for other in set(ALLOWED_TARGETS) - set(combination):
+                        if not issubclass(target_type(other), combination_types):
+                            self.assert_(not hasattr(other, "foo"), f"types {other} affected by hooks on {combination}")
+                # otherwise the other tests are affected
+                # (because builtins are shared)
+                finally:
+                    for target in combination:
+                        unliteral(target, "foo")
 
-            literal(*combination)(foo)
-            try:
-                for target in combination:
-                    self.assert_(hasattr(target, "foo"), f"target hook failed for {target}")
-                
-                target_type = lambda target: target if isinstance(target, type) else type(target)
-                combination_types = tuple(map(target_type, combination))
-                for other in set(ALLOWED_TARGETS) - set(combination):
-                    if not issubclass(target_type(other), combination_types):
-                        self.assert_(not hasattr(other, "foo"), f"types {other} affected by hooks on {combination}")
-            # otherwise the other tests are affected
-            # (because builtins are shared)
-            finally:
-                for target in combination:
-                    unliteral(target, "foo")
-
-            for other in ALLOWED_TARGETS:
-                if other in combination:
-                    self.assert_(not hasattr(other, "foo"), f"unhooking target {other} failed")
-                else:
-                    self.assert_(not hasattr(other, "foo"), f"unhooking {combination} affected type {other}")
+                for other in ALLOWED_TARGETS:
+                    if other in combination:
+                        self.assert_(not hasattr(other, "foo"), f"unhooking target {other} failed")
+                    else:
+                        self.assert_(not hasattr(other, "foo"), f"unhooking {combination} affected type {other}")
                 
     def test_single_literal_hook(self):
         self.run_multiple_hooks(1)

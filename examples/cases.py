@@ -1,13 +1,10 @@
-from custom_literals import Literal, rename
+from custom_literals import literals
 
-class CaseLiterals(Literal, str, bytes):
-    # equivalent to def u(self): ...
-    @rename("u")
-    def uppercase(self):
+@literals(str, bytes)
+class CaseLiterals:
+    def u(self):
         return self.upper()
-    # equivalent to def l(self): ...
-    @rename("l")
-    def lowercase(self):
+    def l(self):
         return self.lower()
 
 print("Hello, World!".u) # HELLO, WORLD!

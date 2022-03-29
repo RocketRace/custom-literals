@@ -1,14 +1,16 @@
-from custom_literals import Literal
+from custom_literals import literals, lie, rename
 from datetime import timedelta
 
-class Duration(Literal, float, int):
-    # Alternatively, @rename("s") on a 
-    # differently named function
-    def s(self):
+@literals(float, int)
+class Duration(lie(float)):
+    @rename("s")
+    def seconds(self):
         return timedelta(seconds=self)
-    def m(self):
+    @rename("m")
+    def minutes(self):
         return timedelta(seconds=60 * self)
-    def h(self):
+    @rename("h")
+    def hours(self):
         return timedelta(seconds=3600 * self)
 
 print(10 .s) # 0:00:10
