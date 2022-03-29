@@ -365,7 +365,7 @@ def literally(*targets: _AllowedTarget, **fns: Callable[[_LiteralT], Any]) -> It
     ----------
 
     *targets: type
-        The types to define the literal for.
+        The types to define the literals for.
 
     **fns: (type -> Any)
         The functions to call when the literal is invoked. The name
