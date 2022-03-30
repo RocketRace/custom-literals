@@ -7,6 +7,8 @@ Examples
 --------
 
 See the `examples/` directory for more.
+
+Function decorator syntax:
 ```py
 from custom_literals import literal
 from datetime import timedelta
@@ -16,15 +18,35 @@ def seconds(self):
     return timedelta(seconds=self)
 
 @literal(float, int, name="m")
-def minutes(self):
+def seconds(self):
     return timedelta(seconds=60 * self)
 
-@literal(float, int, name="h")
-def hours(self):
-    return timedelta(seconds=3600 * self)
+print(30 .s + 0.5.m) # 0:01:00
+```
+Class decorator syntax:
+```py
+from custom_literals import literals
+from datetime import timedelta
 
-print(10 .s) # 0:00:10
-print(1.5.m) # 0:01:30
+@literals(float, int)
+class Duration:
+    def s(self):
+        return timedelta(seconds=self)
+    def m(self):
+        return timedelta(seconds=60 * self)
+
+print(30 .s + 0.5.m) # 0:01:00
+```
+Context manager syntax:
+```py
+from custom_literals import literally
+from datetime import timedelta
+
+with literally(float, int, 
+    s=lambda x: timedelta(seconds=x), 
+    m=lambda x: timedelta(seconds=60 * x)
+):
+    print(30 .s + 0.5.m) # 0:01:00
 ```
 '''
 from __future__ import annotations
