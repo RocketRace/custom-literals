@@ -3,6 +3,32 @@ A module implementing custom literal suffixes for literal values using pure Pyth
 
 (c) RocketRace 2022-present. See LICENSE file for more.
 
+`custom_literals` exposes APIs to define and use C++-style user-defined literals for
+Python objects. These literals can be accessed as attributes of literal objects, similar
+to `@property` attributes. 
+
+Currently, three methods of defining custom literals are supported:
+The function decorator syntax `@literal`, the class decorator syntax `@literals`, and the
+context manager syntax `with literally`. (The latter will automatically unhook the literal
+suffixes when the context is exited.) To remove a custom literal, use `unliteral`.
+
+Custom literals are defined for literal values of the following types:
+
+| Type | Example | Notes |
+| ---- | ------ | ----- |
+| `int` | `(42).x` | The Python parser interprets `42.x` as a float literal followed by an identifier. To avoid this, use `(42).x` or `42 .x` instead. |
+| `float` | `3.14.x` | |
+| `complex` | `1j.x` | |
+| `bool` | `True.x` | Since `bool` is a subclass of `int`, `hasattr` checks *may* falsely return `True` for boolean literals when `int` is hooked. |
+| `str` | `"hello".x` | F-strings (`f"{a}"`) are not supported. |
+| `bytes` | `b"hello".x` | |
+| `None` | `None.x` | |
+| `Ellipsis` | `....x` | Yes, this is valid syntax. |
+| `tuple` | `(1, 2, 3).x` | Generator expressions (`(x for x in ...)`) are not tuple literals and thus won't be affected by literal suffixes. |
+| `list` | `[1, 2, 3].x` | List comprehensions (`[x for x in ...]`) may not function properly. |
+| `set` | `{1, 2, 3}.x` | Set comprehensions (`{x for x in ...}`) may not function properly. |
+| `dict` | `{"a": 1, "b": 2}.x` | Dict comprehensions (`{x: y for x, y in ...}`) may not function properly. |
+
 Examples
 --------
 
@@ -54,7 +80,7 @@ from __future__ import annotations
 import dis
 import inspect
 from contextlib import contextmanager
-from typing import Any, Callable, Generic, Iterator, TypeVar, Union
+from typing import Any, Callable, Dict, Generic, Iterator, List, Set, Tuple, Type, TypeVar, Union
 
 import forbiddenfruit
 
@@ -69,7 +95,7 @@ __all__ = (
     "ALLOWED_TARGETS"
 )
 
-_ALLOWED_BYTECODE_OPS = ("LOAD_CONST", "BUILD_LIST", "BUILD_MAP", "BUILD_SET")
+_ALLOWED_BYTECODE_OPS = ("LOAD_CONST", "BUILD_LIST", "BUILD_MAP", "BUILD_SET", "FORMAT_VALUE", "SET_UPDATE")
 
 ALLOWED_TARGETS = (bool, int, float, complex, str, bytes, None, ..., tuple, list, dict, set)
 ALLOWED_TARGET_TYPES = (bool, int, float, complex, str, bytes, type(None), type(...), tuple, list, dict, set)
@@ -78,10 +104,10 @@ _PrimitiveType = Union[bool, int, float, complex, str, bytes]
 _NoneType = type(None)
 _EllipsisType = type(...)
 _SingletonType = Union[_NoneType, _EllipsisType]
-_CollectionType = Union[tuple[Any, ...], list[Any], dict[Any, Any], set[Any]]
+_CollectionType = Union[Tuple[Any, ...], List[Any], Dict[Any, Any], Set[Any]]
 
 _LiteralType = Union[_PrimitiveType, _SingletonType, _CollectionType]
-_LiteralTarget = Union[type[_PrimitiveType], _SingletonType, type[_CollectionType]]
+_LiteralTarget = Union[Type[_PrimitiveType], _SingletonType, Type[_CollectionType]]
 
 _LiteralT = TypeVar("_LiteralT", bound=_LiteralType)
 _ReturnT = TypeVar("_ReturnT")
@@ -94,7 +120,7 @@ def _to_type(target: _LiteralTarget) -> type[_LiteralType]:
 _HOOKED_INSTANCES: dict[type, list[str]] = {type: [] for type in ALLOWED_TARGET_TYPES}
 
 class _LiteralDescriptor(Generic[_LiteralT, _ReturnT]):
-    def __init__(self, type: type[_LiteralT], /, fn: Callable[[_LiteralT], _ReturnT] , *, name: str, strict: bool):
+    def __init__(self, type: type[_LiteralT], fn: Callable[[_LiteralT], _ReturnT] , *, name: str, strict: bool):
         if name in _HOOKED_INSTANCES[type]:
             raise AttributeError(f"the custom literal `{name}` is already defined on `{type}` objects")          
         # We are willing to shadow attributes but not to override them directly
@@ -191,14 +217,14 @@ class _NoneTypeDescriptorHack:
 # In the future, these functions may allow customizing the "attack surfact" for 
 # builtin attribute hooking. For instance, the __dict__ comparison bug in cpython 
 # could be used instead.
-def _hook_literal(cls: type[_LiteralT], /, name: str, descriptor: _LiteralDescriptor[_LiteralT, Any]) -> None:
+def _hook_literal(cls: type[_LiteralT], name: str, descriptor: _LiteralDescriptor[_LiteralT, Any]) -> None:
     _HOOKED_INSTANCES[cls].append(name)
     # See the comments in _LiteralDescriptor.__get__
     if cls is type(None):
         forbiddenfruit.curse(type, name, _NoneTypeDescriptorHack(name))
     forbiddenfruit.curse(cls, name, descriptor)
 
-def _unhook_literal(cls: type[_LiteralType], /, name: str) -> None:
+def _unhook_literal(cls: type[_LiteralType], name: str) -> None:
     forbiddenfruit.reverse(cls, name)
     # See the comments in _LiteralDescriptor.__get__
     if cls is type(None):
@@ -336,7 +362,7 @@ def literals(*targets: _LiteralTarget, strict: bool = True):
         return cls
     return inner
 
-def unliteral(target: _LiteralTarget, /, name: str):
+def unliteral(target: _LiteralTarget, name: str):
     '''Removes a custom literal from the given type.
 
     Examples
@@ -379,7 +405,8 @@ def unliteral(target: _LiteralTarget, /, name: str):
 
 @contextmanager
 def literally(*targets: _LiteralTarget, strict: bool = True, **fns: Callable[[_LiteralT], Any]) -> Iterator[None]:
-    '''A context manager for temporarily defining custom literals.
+    '''A context manager for temporarily defining custom literals. When
+    the context manager exits, the custom literals are removed.
 
     Note: Due to the overlap in function signature, it is not possible to use
     `literally` to define a custom literal named `strict`. To avoid this,
@@ -428,7 +455,7 @@ def literally(*targets: _LiteralTarget, strict: bool = True, **fns: Callable[[_L
         for name in fns:
             _unhook_literal(type, name=name)
 
-def is_hooked(target: _LiteralTarget, /, name: str) -> bool:
+def is_hooked(target: _LiteralTarget, name: str) -> bool:
     '''Returns whether the given custom literal is 
     hooked in the given type.
 
@@ -507,7 +534,7 @@ def rename(name: str) -> Callable[[Callable[[_LiteralT], _ReturnT]], Callable[[_
         return _RenamedFunction(fn, name)
     return inner
 
-def lie(target: type[_LiteralT], /) -> type[_LiteralT]:
+def lie(target: type[_LiteralT]) -> type[_LiteralT]:
     '''A utility function for lying to type checkers.
     Useful in conjunction with class-based custom literals
     using `@literals`, since the type checker cannot infer

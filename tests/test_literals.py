@@ -409,3 +409,17 @@ class TestLiteral(unittest.TestCase):
         finally:
             unliteral(int, "not_strict")
         
+    def test_fstring(self):
+        @literal(str)
+        def bar_str(self):
+            return "correct"
+        
+        try:
+            self.assertEqual(f"{1}".bar_str, "correct", "fstring hook failed")
+        finally:
+            unliteral(str, "bar_str")
+
+        with self.assertRaises(AttributeError, msg="fstring unhook failed"):
+            f"{1}".bar_str
+    
+    
