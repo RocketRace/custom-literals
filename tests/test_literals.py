@@ -217,3 +217,195 @@ class TestLiteral(unittest.TestCase):
 
         with self.assertRaises(AttributeError, msg="renamed class based unhook failed"):
             "aa".bar
+
+    def test_tuple(self):
+        @literal(tuple)
+        def bar_tuple(self):
+            return "correct"
+        
+        try:
+            self.assertEqual((1, 2).bar_tuple, "correct", "tuple hook failed")
+        finally:
+            unliteral(tuple, "bar_tuple")
+
+        with self.assertRaises(AttributeError, msg="tuple unhook failed"):
+            (1, 2).bar_tuple
+
+    def test_list(self):
+        @literal(list)
+        def bar_list(self):
+            return "correct"
+        
+        try:
+            self.assertEqual([1, 2].bar_list, "correct", "list hook failed")
+        finally:
+            unliteral(list, "bar_list")
+
+        with self.assertRaises(AttributeError, msg="list unhook failed"):
+            [1, 2].bar_list
+    
+    def test_listcomp(self):
+        @literal(list)
+        def bar_list(self):
+            return "correct"
+        
+        try:
+            self.assertEqual([x for x in [1, 2]].bar_list, "correct", "listcomp hook failed")
+        finally:
+            unliteral(list, "bar_list")
+
+        with self.assertRaises(AttributeError, msg="list unhook failed"):
+            [x for x in [1, 2]].bar_list
+    
+    def test_nonstrict_list(self):
+        @literal(list, strict=False)
+        def bar_list(self):
+            return "correct"
+        
+        try:
+            self.assertEqual([1, 2].bar_list, "correct", "list hook failed")
+        finally:
+            unliteral(list, "bar_list")
+
+        with self.assertRaises(AttributeError, msg="list unhook failed"):
+            [1, 2].bar_list
+        
+    def test_nonstrict_listcomp(self):
+        @literal(list, strict=False)
+        def bar_list(self):
+            return "correct"
+        
+        try:
+            self.assertEqual([x for x in [1, 2]].bar_list, "correct", "listcomp hook failed")
+        finally:
+            unliteral(list, "bar_list")
+
+        with self.assertRaises(AttributeError, msg="list unhook failed"):
+            [x for x in [1, 2]].bar_list
+
+    def test_dict(self):
+        @literal(dict)
+        def bar_dict(self):
+            return "correct"
+        
+        try:
+            self.assertEqual({1: 2}.bar_dict, "correct", "dict hook failed")
+        finally:
+            unliteral(dict, "bar_dict")
+
+        with self.assertRaises(AttributeError, msg="dict unhook failed"):
+            {1: 2}.bar_dict
+    
+    def test_dictcomp(self):
+        @literal(dict)
+        def bar_dict(self):
+            return "correct"
+        
+        try:
+            self.assertEqual({x: x for x in [1, 2]}.bar_dict, "correct", "dictcomp hook failed")
+        finally:
+            unliteral(dict, "bar_dict")
+
+        with self.assertRaises(AttributeError, msg="dict unhook failed"):
+            {x: x for x in [1, 2]}.bar_dict
+
+    def test_nonstrict_dict(self):
+        @literal(dict, strict=False)
+        def bar_dict(self):
+            return "correct"
+        
+        try:
+            self.assertEqual({1: 2}.bar_dict, "correct", "dict hook failed")
+        finally:
+            unliteral(dict, "bar_dict")
+
+        with self.assertRaises(AttributeError, msg="dict unhook failed"):
+            {1: 2}.bar_dict
+
+    def test_nonstrict_dictcomp(self):
+        @literal(dict, strict=False)
+        def bar_dict(self):
+            return "correct"
+        
+        try:
+            self.assertEqual({x: x for x in [1, 2]}.bar_dict, "correct", "dictcomp hook failed")
+        finally:
+            unliteral(dict, "bar_dict")
+
+        with self.assertRaises(AttributeError, msg="dict unhook failed"):
+            {x: x for x in [1, 2]}.bar_dict
+
+    def test_set(self):
+        @literal(set)
+        def bar_set(self):
+            return "correct"
+        
+        try:
+            self.assertEqual({1, 2}.bar_set, "correct", "set hook failed")
+        finally:
+            unliteral(set, "bar_set")
+
+        with self.assertRaises(AttributeError, msg="set unhook failed"):
+            {1, 2}.bar_set
+
+    def test_setcomp(self):
+        @literal(set)
+        def bar_set(self):
+            return "correct"
+        
+        try:
+            self.assertEqual({x for x in [1, 2]}.bar_set, "correct", "setcomp hook failed")
+        finally:
+            unliteral(set, "bar_set")
+
+        with self.assertRaises(AttributeError, msg="set unhook failed"):
+            {x for x in [1, 2]}.bar_set
+
+    def test_nonstrict_set(self):
+        @literal(set, strict=False)
+        def bar_set(self):
+            return "correct"
+        
+        try:
+            self.assertEqual({1, 2}.bar_set, "correct", "set hook failed")
+        finally:
+            unliteral(set, "bar_set")
+
+        with self.assertRaises(AttributeError, msg="set unhook failed"):
+            {1, 2}.bar_set
+
+    def test_nonstrict_setcomp(self):
+        @literal(set, strict=False)
+        def bar_set(self):
+            return "correct"
+        
+        try:
+            self.assertEqual({x for x in [1, 2]}.bar_set, "correct", "setcomp hook failed")
+        finally:
+            unliteral(set, "bar_set")
+
+        with self.assertRaises(AttributeError, msg="set unhook failed"):
+            {x for x in [1, 2]}.bar_set
+
+    def test_variable_suffix(self):
+        @literal(int)
+        def not_for_variables(self):
+            return 0
+        
+        with self.assertRaises(TypeError, msg="variable suffixes not properly disallowed"):
+            x = 1
+            x.not_for_variables
+        
+        unliteral(int, "not_for_variables")
+
+    def test_non_strict(self):
+        @literal(int, strict=False)
+        def not_strict(self):
+            return True
+
+        try:
+            x = 1
+            self.assertTrue(x.not_strict, "non strict access failed, was too strict")    
+        finally:
+            unliteral(int, "not_strict")
+        

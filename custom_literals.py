@@ -50,14 +50,11 @@ with literally(float, int,
 ```
 '''
 from __future__ import annotations
-from contextlib import contextmanager
 
 import dis
-import functools
 import inspect
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Generic, Iterator, TypeVar, Union, overload
-if TYPE_CHECKING:
-    from typing_extensions import Self
+from contextlib import contextmanager
+from typing import Any, Callable, Generic, Iterator, TypeVar, Union
 
 import forbiddenfruit
 
@@ -72,25 +69,24 @@ __all__ = (
     "ALLOWED_TARGETS"
 )
 
-_LOAD_CONST_BYTECODE_OP = dis.opmap["LOAD_CONST"]
+_ALLOWED_BYTECODE_OPS = ("LOAD_CONST", "BUILD_LIST", "BUILD_MAP")
 
-ALLOWED_TARGETS = (bool, int, float, complex, str, bytes, None, ...)
-ALLOWED_TARGET_TYPES = (bool, int, float, complex, str, bytes, type(None), type(...))
+ALLOWED_TARGETS = (bool, int, float, complex, str, bytes, None, ..., tuple, list, dict, set)
+ALLOWED_TARGET_TYPES = (bool, int, float, complex, str, bytes, type(None), type(...), tuple, list, dict, set)
 
-_PrimitiveValue = Union[bool, int, float, complex, str, bytes]
-_PrimitiveType = type[_PrimitiveValue]
+_PrimitiveType = Union[bool, int, float, complex, str, bytes]
 _NoneType = type(None)
 _EllipsisType = type(...)
-_SingletonValue = Union[_NoneType, _EllipsisType]
+_SingletonType = Union[_NoneType, _EllipsisType]
+_CollectionType = Union[tuple[Any, ...], list[Any], dict[Any, Any], set[Any]]
 
-_AllowedValue = Union[_PrimitiveValue, _SingletonValue]
-_AllowedType = Union[_PrimitiveType, type[_SingletonValue]]
-_AllowedTarget = Union[_PrimitiveType, _SingletonValue]
+_LiteralType = Union[_PrimitiveType, _SingletonType, _CollectionType]
+_LiteralTarget = Union[type[_PrimitiveType], _SingletonType, type[_CollectionType]]
 
-_LiteralT = TypeVar("_LiteralT", bound=_AllowedValue)
+_LiteralT = TypeVar("_LiteralT", bound=_LiteralType)
 _ReturnT = TypeVar("_ReturnT")
 
-def _to_type(target: _AllowedTarget) -> _AllowedType:
+def _to_type(target: _LiteralTarget) -> type[_LiteralType]:
     return target if isinstance(target, type) else type(target)
 
 # Builtin types are static across the interpreter, so active 
@@ -164,9 +160,9 @@ class _LiteralDescriptor(Generic[_LiteralT, _ReturnT]):
             # possibility of a future change in the bytecode structure
             # and opcode numbering.
             load_instr = frame.f_lasti - 2
-            load_kind = frame.f_code.co_code[load_instr]
-            if load_kind != _LOAD_CONST_BYTECODE_OP:
-                raise TypeError(f"the strict custom literal `{self.name}` of `{self.type}` objects can only be invoked on literal values")
+            load_kind = dis.opname[frame.f_code.co_code[load_instr]]
+            if load_kind not in _ALLOWED_BYTECODE_OPS:
+                raise TypeError(f"{load_kind} the strict custom literal `{self.name}` of `{self.type}` objects can only be invoked on literal values")
         return self.fn(obj)
     
     # Defined to make this a data descriptor, giving it 
@@ -202,14 +198,14 @@ def _hook_literal(cls: type[_LiteralT], /, name: str, descriptor: _LiteralDescri
         forbiddenfruit.curse(type, name, _NoneTypeDescriptorHack(name))
     forbiddenfruit.curse(cls, name, descriptor)
 
-def _unhook_literal(cls: _AllowedType, /, name: str) -> None:
+def _unhook_literal(cls: type[_LiteralType], /, name: str) -> None:
     forbiddenfruit.reverse(cls, name)
     # See the comments in _LiteralDescriptor.__get__
     if cls is type(None):
         forbiddenfruit.reverse(type, name)
     _HOOKED_INSTANCES[cls].remove(name)
 
-def literal(*targets: _AllowedTarget, name: str | None = None, strict: bool = True) -> Callable[[Callable[[_LiteralT], _ReturnT]], Callable[[_LiteralT], _ReturnT]]:
+def literal(*targets: _LiteralTarget, name: str | None = None, strict: bool = True) -> Callable[[Callable[[_LiteralT], _ReturnT]], Callable[[_LiteralT], _ReturnT]]:
     '''A decorator defining a custom literal suffix 
     for objects of the given types.
 
@@ -273,7 +269,7 @@ def literal(*targets: _AllowedTarget, name: str | None = None, strict: bool = Tr
         return fn
     return inner
 
-def literals(*targets: _AllowedTarget, strict: bool = True):
+def literals(*targets: _LiteralTarget, strict: bool = True):
     '''A decorator enabling syntactic sugar for class-based
     custom literal definitions. Decorating a class with 
     `@literals(*targets)` is equivalent to decorating each of 
@@ -340,7 +336,7 @@ def literals(*targets: _AllowedTarget, strict: bool = True):
         return cls
     return inner
 
-def unliteral(target: _AllowedTarget, /, name: str):
+def unliteral(target: _LiteralTarget, /, name: str):
     '''Removes a custom literal from the given type.
 
     Examples
@@ -382,7 +378,7 @@ def unliteral(target: _AllowedTarget, /, name: str):
     _unhook_literal(type, name=name)
 
 @contextmanager
-def literally(*targets: _AllowedTarget, strict: bool = True, **fns: Callable[[_LiteralT], Any]) -> Iterator[None]:
+def literally(*targets: _LiteralTarget, strict: bool = True, **fns: Callable[[_LiteralT], Any]) -> Iterator[None]:
     '''A context manager for temporarily defining custom literals.
 
     Note: Due to the overlap in function signature, it is not possible to use
@@ -432,7 +428,7 @@ def literally(*targets: _AllowedTarget, strict: bool = True, **fns: Callable[[_L
         for name in fns:
             _unhook_literal(type, name=name)
 
-def is_hooked(target: _AllowedTarget, /, name: str) -> bool:
+def is_hooked(target: _LiteralTarget, /, name: str) -> bool:
     '''Returns whether the given custom literal is 
     hooked in the given type.
 
