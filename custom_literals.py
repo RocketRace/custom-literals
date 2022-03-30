@@ -19,7 +19,7 @@ Custom literals are defined for literal values of the following types:
 | `int` | `(42).x` | The Python parser interprets `42.x` as a float literal followed by an identifier. To avoid this, use `(42).x` or `42 .x` instead. |
 | `float` | `3.14.x` | |
 | `complex` | `1j.x` | |
-| `bool` | `True.x` | Since `bool` is a subclass of `int`, `hasattr` checks *may* falsely return `True` for boolean literals when `int` is hooked. |
+| `bool` | `True.x` | Since `bool` is a subclass of `int`, `int` hooks may influence `bool` as well. |
 | `str` | `"hello".x` | F-strings (`f"{a}"`) are also supported. |
 | `bytes` | `b"hello".x` | |
 | `None` | `None.x` | |
@@ -93,6 +93,22 @@ with literally(float, int,
 ):
     print(30 .s + 0.5.m) # 0:01:00
 ```
+
+Caveats
+-------
+
+Stability
+=========
+
+This library relies almost entirely on implementation-specific behavior of the CPython
+interpreter. It is not guaranteed to work on all platforms, or on all versions of Python.
+It has been tested on common platforms (windows, ubuntu, macos) using python 3.7 through
+to 3.10, but while changes that would break the library are quite unlikely, they are not
+impossible either.
+
+**That being said,** `custom_literals` does its absolute best to guarantee maximum 
+stability of the library, even in light of possible breaking changes in CPython internals.
+
 '''
 from __future__ import annotations
 
