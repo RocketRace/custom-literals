@@ -20,7 +20,7 @@ Custom literals are defined for literal values of the following types:
 | `float` | `3.14.x` | |
 | `complex` | `1j.x` | |
 | `bool` | `True.x` | Since `bool` is a subclass of `int`, `hasattr` checks *may* falsely return `True` for boolean literals when `int` is hooked. |
-| `str` | `"hello".x` | F-strings (`f"{a}"`) are not supported. |
+| `str` | `"hello".x` | F-strings (`f"{a}"`) are also supported. |
 | `bytes` | `b"hello".x` | |
 | `None` | `None.x` | |
 | `Ellipsis` | `....x` | Yes, this is valid syntax. |
@@ -28,6 +28,25 @@ Custom literals are defined for literal values of the following types:
 | `list` | `[1, 2, 3].x` | List comprehensions (`[x for x in ...]`) may not function properly. |
 | `set` | `{1, 2, 3}.x` | Set comprehensions (`{x for x in ...}`) may not function properly. |
 | `dict` | `{"a": 1, "b": 2}.x` | Dict comprehensions (`{x: y for x, y in ...}`) may not function properly. |
+
+In addition, custom literals can be defined to be *strict*, that is, only allow the given 
+literal suffix to be invoked on constant, literal values. This means that the following 
+code will raise a `TypeError`:
+
+```py
+@literal(str, name="u", strict=True)
+def utf_8(self):
+    return self.encode("utf-8")
+
+my_string = "hello"
+print(my_string.u) 
+# TypeError: the strict custom literal `u` of `str` objects can only be invoked on literal values
+```
+
+By default, custom literals are *not* strict. This is because determining whether a suffix was
+invoked on a literal value relies on bytecode analysis, which is a feature of the CPython
+interpreter, and is not guaranteed to be forwards compatible. It can be enabled by passing 
+`strict=True` to the `@literal`, `@literals` or `literally` functions.
 
 Examples
 --------
@@ -231,7 +250,7 @@ def _unhook_literal(cls: type[_LiteralType], name: str) -> None:
         forbiddenfruit.reverse(type, name)
     _HOOKED_INSTANCES[cls].remove(name)
 
-def literal(*targets: _LiteralTarget, name: str | None = None, strict: bool = True) -> Callable[[Callable[[_LiteralT], _ReturnT]], Callable[[_LiteralT], _ReturnT]]:
+def literal(*targets: _LiteralTarget, name: str | None = None, strict: bool = False) -> Callable[[Callable[[_LiteralT], _ReturnT]], Callable[[_LiteralT], _ReturnT]]:
     '''A decorator defining a custom literal suffix 
     for objects of the given types.
 
@@ -276,7 +295,7 @@ def literal(*targets: _LiteralTarget, name: str | None = None, strict: bool = Tr
     strict: bool
         If the custom literal is invoked for objects other than 
         constant literals in the source code, raises `TypeError`.
-        By default, this is `True`.
+        By default, this is `False`.
 
     Raises
     ------
@@ -295,7 +314,7 @@ def literal(*targets: _LiteralTarget, name: str | None = None, strict: bool = Tr
         return fn
     return inner
 
-def literals(*targets: _LiteralTarget, strict: bool = True):
+def literals(*targets: _LiteralTarget, strict: bool = False):
     '''A decorator enabling syntactic sugar for class-based
     custom literal definitions. Decorating a class with 
     `@literals(*targets)` is equivalent to decorating each of 
@@ -336,7 +355,7 @@ def literals(*targets: _LiteralTarget, strict: bool = True):
     strict: bool
         If the custom literal is invoked for objects other than 
         constant literals in the source code, raises `TypeError`.
-        By default, this is `True`.
+        By default, this is `False`.
 
     Raises
     ------
@@ -404,7 +423,7 @@ def unliteral(target: _LiteralTarget, name: str):
     _unhook_literal(type, name=name)
 
 @contextmanager
-def literally(*targets: _LiteralTarget, strict: bool = True, **fns: Callable[[_LiteralT], Any]) -> Iterator[None]:
+def literally(*targets: _LiteralTarget, strict: bool = False, **fns: Callable[[_LiteralT], Any]) -> Iterator[None]:
     '''A context manager for temporarily defining custom literals. When
     the context manager exits, the custom literals are removed.
 
@@ -432,7 +451,7 @@ def literally(*targets: _LiteralTarget, strict: bool = True, **fns: Callable[[_L
     strict: bool
         If the custom literal is invoked for objects other than
         constant literals in the source code, raises `TypeError`.
-        By default, this is `True`.
+        By default, this is `False`.
 
     **fns: (type -> Any)
         The functions to call when the literal is invoked. The name
