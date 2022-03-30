@@ -69,7 +69,7 @@ __all__ = (
     "ALLOWED_TARGETS"
 )
 
-_ALLOWED_BYTECODE_OPS = ("LOAD_CONST", "BUILD_LIST", "BUILD_MAP")
+_ALLOWED_BYTECODE_OPS = ("LOAD_CONST", "BUILD_LIST", "BUILD_MAP", "BUILD_SET")
 
 ALLOWED_TARGETS = (bool, int, float, complex, str, bytes, None, ..., tuple, list, dict, set)
 ALLOWED_TARGET_TYPES = (bool, int, float, complex, str, bytes, type(None), type(...), tuple, list, dict, set)
@@ -162,7 +162,7 @@ class _LiteralDescriptor(Generic[_LiteralT, _ReturnT]):
             load_instr = frame.f_lasti - 2
             load_kind = dis.opname[frame.f_code.co_code[load_instr]]
             if load_kind not in _ALLOWED_BYTECODE_OPS:
-                raise TypeError(f"{load_kind} the strict custom literal `{self.name}` of `{self.type}` objects can only be invoked on literal values")
+                raise TypeError(f"the strict custom literal `{self.name}` of `{self.type}` objects can only be invoked on literal values")
         return self.fn(obj)
     
     # Defined to make this a data descriptor, giving it 
