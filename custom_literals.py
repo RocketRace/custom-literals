@@ -315,6 +315,14 @@ def literals(*targets: _AllowedTarget, strict: bool = True):
         If the custom literal is invoked for objects other than 
         constant literals in the source code, raises `TypeError`.
         By default, this is `True`.
+
+    Raises
+    ------
+
+    AttributeError:
+        Raised if the custom literal names are already defined as
+        an attribute of the given type, or if any of the methods
+        begin with `__`.
     '''
     def inner(cls: type) -> type:
         for target in targets:
