@@ -182,8 +182,10 @@ class _LiteralDescriptor(Generic[_LiteralT, _ReturnT]):
 # 
 # For more, check out the big comment block in _LiteralDescriptor.__get__
 class _NoneTypeDescriptorHack:
-    def __get__(self, _obj, _type):
-        return None
+    def __get__(self, obj, type):
+        if obj is type(None):
+            return None
+        raise AttributeError
     def __set__(self, _obj, _value):
         raise AttributeError
 
