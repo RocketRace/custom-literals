@@ -121,7 +121,7 @@ class TestLiteral(unittest.TestCase):
     def test_literally(self):
         from datetime import datetime
         try:
-            with literally(int, name="unix", fn=datetime.fromtimestamp):
+            with literally(int, unix=datetime.fromtimestamp):
                 self.assertEqual((1647804818).unix, datetime(2022, 3, 20, 21, 33, 38), "context manager hook failed")
         
             with self.assertRaises(AttributeError, msg="context manager unhook failed"):

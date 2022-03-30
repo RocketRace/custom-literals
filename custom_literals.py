@@ -182,14 +182,15 @@ class _LiteralDescriptor(Generic[_LiteralT, _ReturnT]):
 # 
 # For more, check out the big comment block in _LiteralDescriptor.__get__
 class _NoneTypeDescriptorHack:
+    def __init__(self, name):
+        self.name = name
+
     def __get__(self, obj, type):
-        if obj is type(None):
-            return None
-        raise AttributeError
+        if self.name not in _HOOKED_INSTANCES[obj]:
+            raise AttributeError
+    
     def __set__(self, _obj, _value):
         raise AttributeError
-
-_NONE_TYPE_DESCRIPTOR_HACK = _NoneTypeDescriptorHack()
 
 # In the future, these functions may allow customizing the "attack surfact" for 
 # builtin attribute hooking. For instance, the __dict__ comparison bug in cpython 
@@ -198,7 +199,7 @@ def _hook_literal(cls: type[_LiteralT], /, name: str, descriptor: _LiteralDescri
     _HOOKED_INSTANCES[cls].append(name)
     # See the comments in _LiteralDescriptor.__get__
     if cls is type(None):
-        forbiddenfruit.curse(type, name, _NONE_TYPE_DESCRIPTOR_HACK)
+        forbiddenfruit.curse(type, name, _NoneTypeDescriptorHack(name))
     forbiddenfruit.curse(cls, name, descriptor)
 
 def _unhook_literal(cls: _AllowedType, /, name: str) -> None:
