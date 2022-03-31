@@ -1,7 +1,7 @@
 `custom-literals`
 ===============
 
-A module implementing custom literal suffixes using pure Python. `custom_literals` 
+A module implementing custom literal suffixes using pure Python. `custom-literals` 
 mimics C++'s user-defined literals (UDLs) by defining literal suffixes that can 
 be accessed as attributes of literal values, such as numeric constants, string 
 literals and more.
@@ -194,5 +194,5 @@ Patches, bug reports, feature requests and pull requests  are welcome.
 Links
 =====
 
-* [GitHub repository](https://github.com/RocketRace/custom_literals)
-* [PyPI](https://pypi.org/project/custom_literals/)
+* [GitHub repository](https://github.com/RocketRace/custom-literals)
+* [PyPI](https://pypi.org/project/custom-literals/)

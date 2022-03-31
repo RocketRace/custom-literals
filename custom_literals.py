@@ -1,8 +1,8 @@
 '''
-custom_literals
+`custom-literals`
 ===============
 
-A module implementing custom literal suffixes using pure Python. `custom_literals` 
+A module implementing custom literal suffixes using pure Python. `custom-literals` 
 mimics C++'s user-defined literals (UDLs) by defining literal suffixes that can 
 be accessed as attributes of literal values, such as numeric constants, string 
 literals and more.
