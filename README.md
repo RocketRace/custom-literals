@@ -176,3 +176,32 @@ But *really*, why?
 -------------------
 
 Because it's posssible.
+
+Nooooooo (runs away from computer)
+----------------------------------
+
+I kind of disagree: yessss (dances in front of computer)
+
+Could this ever be type safe?
+-----------------------------
+
+I doubt it. The assumptions made by static analysis tools are incredibly useful, and
+this is such an edge case it makes no sense for them to assume builtin literal types can have
+dynamically set attributes. In addition, there isn't a good way to signal to your type 
+checker that an immutable type is going to be endowed with new attributes!
+
+License
+=======
+
+(c) RocketRace 2022-present. This library is under the Mozilla Public License 2.0. 
+See the `LICENSE` file for more details.
+
+Contributing
+============
+
+Patches, bug reports, feature requests and pull requests  are welcome.
+
+Links
+=====
+
+* [GitHub repository](https://github.com/RocketRace/custom_literals)
