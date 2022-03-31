@@ -97,6 +97,17 @@ invoked on a literal value relies on bytecode analysis, which is a feature of th
 interpreter, and is not guaranteed to be forwards compatible. It can be enabled by passing 
 `strict=True` to the `@literal`, `@literals` or `literally` functions.
 
+For the sake of stability, the library exposes multiple backends that can be used as the 
+implementation on which custom literals operate. The library currently exposes three backends:
+
+* `dict_cmp` (without any dependencies)
+* `forbiddenfruit` (using the `forbiddenfruit` library)
+* `fishhook` (using the `fishhook` library)
+
+The default backend is `dict_cmp`. To select different backend, pass `backend=<name>`
+to `@literal`, `@literals` or `literally`. Alternatively, you can set the `CUSTOM_LITERAL_BACKEND`
+environment variable to one of the valid backend names.
+
 Caveats
 ========
 
@@ -111,6 +122,8 @@ impossible either.
 
 **That being said,** `custom_literals` does its absolute best to guarantee maximum 
 stability of the library, even in light of possible breaking changes in CPython internals.
+The code base is well tested. The library also exposes multiple backends for the actual
+implementation of builtin type hooks.
 
 Type safety
 -----------
@@ -156,10 +169,9 @@ from __future__ import annotations
 
 import dis
 import inspect
+import os
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Generic, Iterator, List, Set, Tuple, Type, TypeVar, Union
-
-import forbiddenfruit
 
 __all__ = (
     "literal",
@@ -169,10 +181,13 @@ __all__ = (
     "rename",
     "is_hooked",
     "lie",
-    "ALLOWED_TARGETS"
+    "ALLOWED_TARGETS",
+    "ALLOWED_BACKENDS",
+    "DEFAULT_BACKEND",
 )
 
-_ALLOWED_BYTECODE_OPS = ("LOAD_CONST", "BUILD_LIST", "BUILD_MAP", "BUILD_SET", "FORMAT_VALUE", "SET_UPDATE")
+ALLOWED_BACKENDS = ("forbiddenfruit", "fishhook", "dict_cmp")
+DEFAULT_BACKEND = "dict_cmp"
 
 ALLOWED_TARGETS = (bool, int, float, complex, str, bytes, None, ..., tuple, list, dict, set)
 ALLOWED_TARGET_TYPES = (bool, int, float, complex, str, bytes, type(None), type(...), tuple, list, dict, set)
@@ -189,6 +204,8 @@ _LiteralTarget = Union[Type[_PrimitiveType], _SingletonType, Type[_CollectionTyp
 _T = TypeVar("_T")
 _U = TypeVar("_U")
 _LiteralT = TypeVar("_LiteralT", bound=_LiteralType)
+
+_ALLOWED_BYTECODE_OPS = ("LOAD_CONST", "BUILD_LIST", "BUILD_MAP", "BUILD_SET", "FORMAT_VALUE", "SET_UPDATE")
 
 def _to_type(target: _LiteralTarget) -> type[_LiteralType]:
     return target if isinstance(target, type) else type(target)
@@ -292,24 +309,65 @@ class _NoneTypeDescriptorHack:
     def __set__(self, _obj, _value):
         raise AttributeError
 
-# In the future, these functions may allow customizing the "attack surfact" for 
-# builtin attribute hooking. For instance, the __dict__ comparison bug in cpython 
-# could be used instead.
-def _hook_literal(cls: type[_LiteralT], name: str, descriptor: _LiteralDescriptor[_LiteralT, Any]) -> None:
+def _hook_literal(cls: type[_LiteralT], name: str, descriptor: _LiteralDescriptor[_LiteralT, Any], backend: str) -> None:
     _HOOKED_INSTANCES[cls].append(name)
+    hook = _select_hook_backend("forbiddenfruit")
     # See the comments in _LiteralDescriptor.__get__
     if cls is type(None):
-        forbiddenfruit.curse(type, name, _NoneTypeDescriptorHack(name))
-    forbiddenfruit.curse(cls, name, descriptor)
+        hook(type, name, _NoneTypeDescriptorHack(name))
+    hook(cls, name, descriptor)
 
-def _unhook_literal(cls: type[_LiteralType], name: str) -> None:
-    forbiddenfruit.reverse(cls, name)
+def _unhook_literal(cls: type[_LiteralType], name: str, backend: str) -> None:
+    unhook = _select_unhook_backend("forbiddenfruit")
+    unhook(cls, name)
     # See the comments in _LiteralDescriptor.__get__
     if cls is type(None):
-        forbiddenfruit.reverse(type, name)
+        unhook(type, name)
     _HOOKED_INSTANCES[cls].remove(name)
 
-def literal(*targets: _LiteralTarget, name: str | None = None, strict: bool = False) -> Callable[[Callable[[_LiteralT], _U]], Callable[[_LiteralT], _U]]:
+def _get_backend(override: str | None) -> str:
+    if override is not None:
+        return override
+    return os.environ.get("CUSTOM_LITERALS_BACKEND", DEFAULT_BACKEND)
+
+def _dict_cmp_hook(type: type[Any], name: str, attr: Any) -> None:
+    # This relies on a wontfix bug in cpython
+    class Evil:
+        def __eq__(self, other):
+            other[name] = attr
+    _ = getattr(type, "__dict__") == Evil()
+
+def _dict_cmp_unhook(type: type[Any], name: str) -> None:
+    # This relies on a wontfix bug in cpython
+    class Evil:
+        def __eq__(self, other):
+            del other[name]
+    _ = getattr(type, "__dict__") == Evil()
+
+def _select_hook_backend(backend: str) -> Callable[[type[Any], str, Any], None]:
+    if backend == "forbiddenfruit":
+        import forbiddenfruit
+        return forbiddenfruit.curse
+    elif backend == "fishhook":
+        import fishhook
+        return lambda type, name, attr: fishhook.hook(type, name)(attr)
+    elif backend == "dict_cmp":
+        return _dict_cmp_hook
+    raise ValueError(f"unsupported backend: {backend}")
+
+def _select_unhook_backend(backend: str) -> Callable[[type[Any], str], None]:
+    if backend == "forbiddenfruit":
+        import forbiddenfruit
+        return forbiddenfruit.reverse
+    elif backend == "fishhook":
+        import fishhook
+        return fishhook.unhook
+    elif backend == "dict_cmp":
+        return _dict_cmp_unhook
+    raise ValueError(f"unsupported backend: {backend}")
+
+
+def literal(*targets: _LiteralTarget, name: str | None = None, strict: bool = False, backend: str | None = None) -> Callable[[Callable[[_LiteralT], _U]], Callable[[_LiteralT], _U]]:
     '''A decorator defining a custom literal suffix 
     for objects of the given types.
 
@@ -355,6 +413,12 @@ def literal(*targets: _LiteralTarget, name: str | None = None, strict: bool = Fa
         If the custom literal is invoked for objects other than 
         constant literals in the source code, raises `TypeError`.
         By default, this is `False`.
+    
+    backend: str | None
+        The name of the backend to use. If this is `None`, the 
+        environment variable `CUSTOM_LITERAL_BACKEND` is used. 
+        If the environment variable is not set, the default
+        backend (given by the `DEFAULT_BACKEND` constant) is used.
 
     Raises
     ========
@@ -369,11 +433,11 @@ def literal(*targets: _LiteralTarget, name: str | None = None, strict: bool = Fa
             real_name = fn.__name__ if name is None else name
             # As far as I can tell, there's no way to make this type check properly
             descriptor: _LiteralDescriptor[Any, _U] = _LiteralDescriptor(type, fn, name=real_name, strict=strict)  # type: ignore
-            _hook_literal(type, real_name, descriptor)
+            _hook_literal(type, real_name, descriptor, _get_backend(backend))
         return fn
     return inner
 
-def literals(*targets: _LiteralTarget, strict: bool = False):
+def literals(*targets: _LiteralTarget, strict: bool = False, backend: str | None = None):
     '''A decorator enabling syntactic sugar for class-based
     custom literal definitions. Decorating a class with 
     `@literals(*targets)` is equivalent to decorating each of 
@@ -416,6 +480,12 @@ def literals(*targets: _LiteralTarget, strict: bool = False):
         constant literals in the source code, raises `TypeError`.
         By default, this is `False`.
 
+    backend: str | None
+        The name of the backend to use. If this is `None`, the 
+        environment variable `CUSTOM_LITERAL_BACKEND` is used. 
+        If the environment variable is not set, the default
+        backend (given by the `DEFAULT_BACKEND` constant) is used.
+
     Raises
     ========
 
@@ -436,11 +506,11 @@ def literals(*targets: _LiteralTarget, strict: bool = False):
                     else:
                         real_name = name
                     descriptor = _LiteralDescriptor(type, fn, name=real_name, strict=strict)
-                    _hook_literal(type, real_name, descriptor)
+                    _hook_literal(type, real_name, descriptor, _get_backend(backend))
         return cls
     return inner
 
-def unliteral(target: _LiteralTarget, name: str):
+def unliteral(target: _LiteralTarget, name: str, backend: str = DEFAULT_BACKEND):
     '''Removes a custom literal from the given type.
 
     Examples
@@ -479,10 +549,10 @@ def unliteral(target: _LiteralTarget, name: str):
     if name not in _HOOKED_INSTANCES[type]:
         raise AttributeError(f"the custom literal `{name}` of `{type}` objects is not defined")
     
-    _unhook_literal(type, name=name)
+    _unhook_literal(type, name=name, backend=backend)
 
 @contextmanager
-def literally(*targets: _LiteralTarget, strict: bool = False, **fns: Callable[[_LiteralT], Any]) -> Iterator[None]:
+def literally(*targets: _LiteralTarget, strict: bool = False, backend: str | None = None, **fns: Callable[[_LiteralT], Any]) -> Iterator[None]:
     '''A context manager for temporarily defining custom literals. When
     the context manager exits, the custom literals are removed.
 
@@ -512,6 +582,12 @@ def literally(*targets: _LiteralTarget, strict: bool = False, **fns: Callable[[_
         constant literals in the source code, raises `TypeError`.
         By default, this is `False`.
 
+    backend: str | None
+        The name of the backend to use. If this is `None`, the 
+        environment variable `CUSTOM_LITERAL_BACKEND` is used. 
+        If the environment variable is not set, the default
+        backend (given by the `DEFAULT_BACKEND` constant) is used.
+
     **fns: (type -> Any)
         The functions to call when the literal is invoked. The name
         of the keyword argument is used as the name of the custom literal.
@@ -527,11 +603,11 @@ def literally(*targets: _LiteralTarget, strict: bool = False, **fns: Callable[[_
     for type in types:
         for name, fn in fns.items():
             descriptor = _LiteralDescriptor(type, fn, name=name, strict=strict)
-            _hook_literal(type, name, descriptor)
+            _hook_literal(type, name, descriptor, _get_backend(backend))
     yield
     for type in types:
         for name in fns:
-            _unhook_literal(type, name=name)
+            _unhook_literal(type, name=name, backend=_get_backend(backend))
 
 def is_hooked(target: _LiteralTarget, name: str) -> bool:
     '''Returns whether the given custom literal is 

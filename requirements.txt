@@ -1,1 +1,2 @@
 forbiddenfruit>=0.1.4
+fishhook>=0.1.4
