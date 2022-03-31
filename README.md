@@ -195,3 +195,4 @@ Links
 =====
 
 * [GitHub repository](https://github.com/RocketRace/custom_literals)
+* [PyPI](https://pypi.org/project/custom_literals/)
