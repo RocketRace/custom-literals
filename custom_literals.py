@@ -126,7 +126,30 @@ is to patch custom attributes on builtin types.
 
 Therefore, if you are using linters, type checkers or other static analysis tools, you 
 will likely encounter many warnings and errors. If your tool allows it, you should disable 
-these warnings if you want to use this library without false positives.
+these warnings (ideally on a per-diagnostic, scoped basis) if you want to use this library 
+without false positives.
+
+FAQ
+=====
+
+Should I use this in production?
+-------------------------------
+
+Emphatically, no! But I won't stop you.
+
+Why?
+-----
+
+Python's operator overloading allows for flexible design of domain-specific languages. 
+However, Python pales in comparison to C++ in this aspect. In particular, User-Defined 
+Literals (UDLs) are a powerful feature of C++ missing in Python. This library is designed
+to emulate UDLs in Python, with syntactic sugar comparable to C++ in elegance.
+
+But *really*, why?
+-------------------
+
+Because it's posssible.
+
 
 '''
 from __future__ import annotations
