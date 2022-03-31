@@ -163,8 +163,9 @@ _CollectionType = Union[Tuple[Any, ...], List[Any], Dict[Any, Any], Set[Any]]
 _LiteralType = Union[_PrimitiveType, _SingletonType, _CollectionType]
 _LiteralTarget = Union[Type[_PrimitiveType], _SingletonType, Type[_CollectionType]]
 
+_T = TypeVar("_T")
+_U = TypeVar("_U")
 _LiteralT = TypeVar("_LiteralT", bound=_LiteralType)
-_ReturnT = TypeVar("_ReturnT")
 
 def _to_type(target: _LiteralTarget) -> type[_LiteralType]:
     return target if isinstance(target, type) else type(target)
@@ -173,8 +174,8 @@ def _to_type(target: _LiteralTarget) -> type[_LiteralType]:
 # custom literals can be stored globally
 _HOOKED_INSTANCES: dict[type, list[str]] = {type: [] for type in ALLOWED_TARGET_TYPES}
 
-class _LiteralDescriptor(Generic[_LiteralT, _ReturnT]):
-    def __init__(self, type: type[_LiteralT], fn: Callable[[_LiteralT], _ReturnT] , *, name: str, strict: bool):
+class _LiteralDescriptor(Generic[_LiteralT, _U]):
+    def __init__(self, type: type[_LiteralT], fn: Callable[[_LiteralT], _U] , *, name: str, strict: bool):
         if name in _HOOKED_INSTANCES[type]:
             raise AttributeError(f"the custom literal `{name}` is already defined on `{type}` objects")          
         # We are willing to shadow attributes but not to override them directly
@@ -182,11 +183,11 @@ class _LiteralDescriptor(Generic[_LiteralT, _ReturnT]):
             raise AttributeError(f"the name `{name}` is already defined on `{type}` objects")    
         
         self.type: type[_LiteralT] = type
-        self.fn: Callable[[_LiteralT], _ReturnT] = fn
+        self.fn: Callable[[_LiteralT], _U] = fn
         self.name: str = name
         self.strict: bool = strict
     
-    def __get__(self, obj: _LiteralT, owner: type[_LiteralT]) -> _ReturnT | None:
+    def __get__(self, obj: _LiteralT, owner: type[_LiteralT]) -> _U | None:
         # When __get__ is called with the arguments
         #    (self, instance, cls)
         # we know that it's being called on an instance,
@@ -285,7 +286,7 @@ def _unhook_literal(cls: type[_LiteralType], name: str) -> None:
         forbiddenfruit.reverse(type, name)
     _HOOKED_INSTANCES[cls].remove(name)
 
-def literal(*targets: _LiteralTarget, name: str | None = None, strict: bool = False) -> Callable[[Callable[[_LiteralT], _ReturnT]], Callable[[_LiteralT], _ReturnT]]:
+def literal(*targets: _LiteralTarget, name: str | None = None, strict: bool = False) -> Callable[[Callable[[_LiteralT], _U]], Callable[[_LiteralT], _U]]:
     '''A decorator defining a custom literal suffix 
     for objects of the given types.
 
@@ -339,12 +340,12 @@ def literal(*targets: _LiteralTarget, name: str | None = None, strict: bool = Fa
         Raised if the custom literal name is already defined as 
         an attribute of the given type.
     '''
-    def inner(fn: Callable[[_LiteralT], _ReturnT]) -> Callable[[_LiteralT], _ReturnT]:
+    def inner(fn: Callable[[_LiteralT], _U]) -> Callable[[_LiteralT], _U]:
         for target in targets:
             type = _to_type(target)
             real_name = fn.__name__ if name is None else name
             # As far as I can tell, there's no way to make this type check properly
-            descriptor: _LiteralDescriptor[Any, _ReturnT] = _LiteralDescriptor(type, fn, name=real_name, strict=strict)  # type: ignore
+            descriptor: _LiteralDescriptor[Any, _U] = _LiteralDescriptor(type, fn, name=real_name, strict=strict)  # type: ignore
             _hook_literal(type, real_name, descriptor)
         return fn
     return inner
@@ -543,21 +544,21 @@ def is_hooked(target: _LiteralTarget, name: str) -> bool:
     '''
     return name in _HOOKED_INSTANCES[_to_type(target)]
 
-class _RenamedFunction(Generic[_LiteralT, _ReturnT]):
+class _RenamedFunction(Generic[_T, _U]):
     # To signal that a function has been renamed.
     # This is necessary because the `__name__` attribute
     # of a method can be different from its name in the
     # class dirs for multiple reasons, and we need to
     # be able to tell when that has happened as a result
     # of the `rename` decorator.
-    def __init__(self, fn: Callable[[_LiteralT], _ReturnT], name: str):
+    def __init__(self, fn: Callable[[_T], _U], name: str):
         self.fn = fn
         self.name = name
     
-    def __call__(self, arg: _LiteralT) -> _ReturnT:
+    def __call__(self, arg: _T) -> _U:
         return self.fn(arg)
 
-def rename(name: str) -> Callable[[Callable[[_LiteralT], _ReturnT]], Callable[[_LiteralT], _ReturnT]]:
+def rename(name: str) -> Callable[[Callable[[_T], _U]], Callable[[_T], _U]]:
     '''A utility decorator for renaming functions. Useful when combined
     with class-based custom literal definitions using `literals`.
 
@@ -584,7 +585,7 @@ def rename(name: str) -> Callable[[Callable[[_LiteralT], _ReturnT]], Callable[[_
     name: str
         The updated name.
     '''
-    def inner(fn: Callable[[_LiteralT], _ReturnT]) -> Callable[[_LiteralT], _ReturnT]:
+    def inner(fn: Callable[[_T], _U]) -> Callable[[_T], _U]:
         return _RenamedFunction(fn, name)
     return inner
 
