@@ -111,17 +111,6 @@ invoked on a literal value relies on bytecode analysis, which is a feature of th
 interpreter, and is not guaranteed to be forwards compatible. It can be enabled by passing 
 `strict=True` to the `@literal`, `@literals` or `literally` functions.
 
-For the sake of stability, the library exposes multiple backends that can be used as the 
-implementation on which custom literals operate. The library currently exposes three backends:
-
-* `dict_cmp` (without any dependencies)
-* `forbiddenfruit` (using the `forbiddenfruit` library)
-* `fishhook` (using the `fishhook` library)
-
-The default backend is `dict_cmp`. To select different backend, pass `backend=<name>`
-to `@literal`, `@literals` or `literally`. Alternatively, you can set the `CUSTOM_LITERAL_BACKEND`
-environment variable to one of the valid backend names.
-
 Caveats
 ========
 
@@ -136,8 +125,9 @@ impossible either.
 
 **That being said,** `custom_literals` does its absolute best to guarantee maximum 
 stability of the library, even in light of possible breaking changes in CPython internals.
-The code base is well tested. The library also exposes multiple backends for the actual
-implementation of builtin type hooks.
+The code base is well tested. In the future, the library may also exposes multiple 
+different backends for the actual implementation of builtin type patching. As of now,
+the only valid backend is `forbiddenfruit`, which uses the `forbiddenfruit` library.
 
 Type safety
 -----------
