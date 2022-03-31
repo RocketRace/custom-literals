@@ -421,3 +421,7 @@ class TestLiteral(unittest.TestCase):
 
         with self.assertRaises(AttributeError, msg="fstring unhook failed"):
             f"{1}".bar_str
+
+
+if __name__ == '__main__':
+    unittest.main()
