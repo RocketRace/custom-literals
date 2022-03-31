@@ -1,11 +1,13 @@
 '''
-A module implementing custom literal suffixes for literal values using pure Python.
+custom_literals
+===============
+
+A module implementing custom literal suffixes using pure Python. `custom_literals` 
+mimics C++'s user-defined literals (UDLs) by defining literal suffixes that can 
+be accessed as attributes of literal values, such as numeric constants, string 
+literals and more.
 
 (c) RocketRace 2022-present. See LICENSE file for more.
-
-`custom_literals` exposes APIs to define and use C++-style user-defined literals for
-Python objects. These literals can be accessed as attributes of literal objects, similar
-to `@property` attributes. 
 
 Examples
 ========
