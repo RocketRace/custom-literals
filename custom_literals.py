@@ -22,7 +22,7 @@ def seconds(self):
     return timedelta(seconds=self)
 
 @literal(float, int, name="m")
-def seconds(self):
+def minutes(self):
     return timedelta(seconds=60 * self)
 
 print(30 .s + 0.5.m) # 0:01:00
@@ -64,7 +64,7 @@ suffixes when the context is exited.) To remove a custom literal, use `unliteral
 Custom literals are defined for literal values of the following types:
 
 | Type | Example | Notes |
-| ======== | ======== | ======== |
+|------|---------|-------|
 | `int` | `(42).x` | The Python parser interprets `42.x` as a float literal followed by an identifier. To avoid this, use `(42).x` or `42 .x` instead. |
 | `float` | `3.14.x` | |
 | `complex` | `1j.x` | |
