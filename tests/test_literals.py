@@ -421,5 +421,3 @@ class TestLiteral(unittest.TestCase):
 
         with self.assertRaises(AttributeError, msg="fstring unhook failed"):
             f"{1}".bar_str
-    
-    

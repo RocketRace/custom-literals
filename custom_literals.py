@@ -56,7 +56,7 @@ print("hello".u) # "HELLO"
 unliteral(str, "u")
 assert not hasattr("hello", "u")
 ```
-Context manager syntax:
+Context manager syntax (automatically removes literals afterwards):
 ```py
 from custom_literals import literally
 from datetime import timedelta
@@ -84,7 +84,7 @@ Custom literals are defined for literal values of the following types:
 | `float` | `3.14.x` | |
 | `complex` | `1j.x` | |
 | `bool` | `True.x` | Since `bool` is a subclass of `int`, `int` hooks may influence `bool` as well. |
-| `str` | `"hello".x` | F-strings (`f"{a}"`) are also supported. |
+| `str` | `"hello".x` | F-strings (`f"{a}".x`) are also supported. |
 | `bytes` | `b"hello".x` | |
 | `None` | `None.x` | |
 | `Ellipsis` | `....x` | Yes, this is valid syntax. |
@@ -552,6 +552,12 @@ def unliteral(target: _LiteralTarget, name: str, backend: str = DEFAULT_BACKEND)
 
     name: str
         The name of the custom literal being removed.
+    
+    backend: str
+        The name of the backend to use. If this is `None`, the
+        environment variable `CUSTOM_LITERAL_BACKEND` is used.
+        If the environment variable is not set, the default
+        backend (given by the `DEFAULT_BACKEND` constant) is used.
 
     Raises
     ========
