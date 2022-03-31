@@ -1,4 +1,4 @@
-custom_literals
+`custom-literals`
 ===============
 
 A module implementing custom literal suffixes using pure Python. `custom_literals` 
