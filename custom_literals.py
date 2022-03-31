@@ -41,6 +41,19 @@ class Duration:
 
 print(30 .s + 0.5.m) # 0:01:00
 ```
+Removing a custom literal:
+```py
+from custom_literals import literal, unliteral
+
+@literal(str)
+def u(self):
+    return self.upper()
+
+print("hello".u) # "HELLO"
+
+unliteral(str, "u")
+assert not hasattr("hello", "u")
+```
 Context manager syntax:
 ```py
 from custom_literals import literally
