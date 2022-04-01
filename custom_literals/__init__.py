@@ -109,17 +109,17 @@ _U = TypeVar("_U")
 _LiteralT = TypeVar("_LiteralT", bound=_LiteralType)
 
 _ALLOWED_BYTECODE_OPS = (
-    "LOAD_CONST", 
-    "BUILD_TUPLE", 
-    "BUILD_LIST", 
-    "BUILD_MAP", 
-    "BUILD_SET", 
-    "FORMAT_VALUE", 
+    "LOAD_CONST",
+    "BUILD_TUPLE",
+    "BUILD_LIST",
+    "BUILD_SET",
+    "BUILD_MAP",
+    "FORMAT_VALUE",
     "LIST_TO_TUPLE",
     "LIST_EXTEND",
-    "MAP_UPDATE", 
-    "DICT_UPDATE", 
+    "MAP_UPDATE",
     "SET_UPDATE",
+    "DICT_UPDATE",
 )
 
 def _to_type(target: _LiteralTarget) -> type[_LiteralType]:
@@ -192,13 +192,13 @@ class _LiteralDescriptor(Generic[_LiteralT, _U]):
             # that the object has been computed, e.g. by storing it
             # in a variable first.
             #
-            # Note that this is not forware-compatible due to the
+            # Note that this is not forward-compatible due to the
             # possibility of a future change in the bytecode structure
             # and opcode numbering.
             load_instr = frame.f_lasti - 2
             load_kind = dis.opname[frame.f_code.co_code[load_instr]]
             if load_kind not in _ALLOWED_BYTECODE_OPS:
-                raise TypeError(f"{load_kind} the strict custom literal `{self.name}` of `{self.type}` objects can only be invoked on literal values")
+                raise TypeError(f"the strict custom literal `{self.name}` of `{self.type}` objects can only be invoked on literal values")
         return self.fn(obj)
     
     # Defined to make this a data descriptor, giving it 
