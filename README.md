@@ -125,7 +125,7 @@ impossible either.
 
 **That being said,** `custom_literals` does its absolute best to guarantee maximum 
 stability of the library, even in light of possible breaking changes in CPython internals.
-The code base is well tested. In the future, the library may also exposes multiple 
+The code base is well tested. In the future, the library may also expose multiple 
 different backends for the actual implementation of builtin type patching. As of now,
 the only valid backend is `forbiddenfruit`, which uses the `forbiddenfruit` library.
 
