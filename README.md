@@ -386,9 +386,13 @@ dis.dis(add) # Outputs:
 In the case of custom literals, the opcodes we are concerned about are the following:
 
 * `LOAD_CONST`, used to load a constant (including most literal values) to the stack
-* `BUILD_TUPLE`/`BUILD_LIST`/`BUILD_SET`/`BUILD_MAP`, used to push a tuple/list/set/dict literals to the stack
+* `BUILD_TUPLE`/`BUILD_LIST`/`BUILD_SET`/`BUILD_MAP`, used to push tuple/list/set/dict literals to the stack
 * `FORMAT_VALUE`, used to push a formatted f-string literal (`f"{a} {b} {c}"`) to the stack
 * `LIST_TO_TUPLE`/`LIST_EXTEND`/`SET_UPDATE`/`DICT_UPDATE`, sometimes used in list/set/dict literals, for example when using the star unpack syntax (`[a, b, c, *x]`)
+
+(Do keep in mind that opcodes are not necessarily forwards compatible. Python 3.11 could release
+a dozen new opcodes tomorrow that need to be accounted for by the library! This is why 
+`custom-literals` does not perform bytecode analysis by default.)
 
 If strict mode is enabled, the library will traverse up through the stack frames, inspect the bytecode,
 check the most recently executed opcode (available in `frame.f_lasti`), and check if it is one of the
