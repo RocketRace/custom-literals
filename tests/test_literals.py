@@ -36,7 +36,7 @@ class TestLiteral(unittest.TestCase):
         self.run_multiple_hooks(1)
 
     def test_many_literal_hooks(self):
-        for n in range(2, len(ALLOWED_TARGETS)):
+        for n in range(2, 5):
             self.run_multiple_hooks(n)
     
     def test_str(self):
@@ -422,6 +422,93 @@ class TestLiteral(unittest.TestCase):
         with self.assertRaises(AttributeError, msg="fstring unhook failed"):
             f"{1}".bar_str
 
+    def test_tuple_non_const_strict(self):
+        @literal(tuple, strict=True)
+        def bar_tuple(self):
+            return "correct"
+        
+        x = 1
+        y = 2
+        try:
+            self.assertEqual((x, y).bar_tuple, "correct", "tuple hook failed")
+        finally:
+            unliteral(tuple, "bar_tuple")
+
+        with self.assertRaises(AttributeError, msg="tuple unhook failed"):
+            (x, y).bar_tuple
+
+    def test_list_unpack_strict(self):
+        @literal(list, strict=True)
+        def bar_list(self):
+            return "correct"
+        
+        a = [1, 2, 3]
+        b = [4, 5, 6]
+        try:
+            self.assertEqual([*a, *b].bar_list, "correct", "list hook failed")
+        finally:
+            unliteral(list, "bar_list")
+
+        with self.assertRaises(AttributeError, msg="list unhook failed"):
+            [*a, *b].bar_list
+
+    def test_tuple_unpack_strict(self):
+        @literal(tuple, strict=True)
+        def bar_tuple(self):
+            return "correct"
+        
+        a = (1, 2, 3)
+        b = (4, 5, 6)
+        try:
+            self.assertEqual((*a, *b).bar_tuple, "correct", "tuple hook failed")
+        finally:
+            unliteral(tuple, "bar_tuple")
+
+        with self.assertRaises(AttributeError, msg="tuple unhook failed"):
+            (*a, *b).bar_tuple
+    
+    def test_set_unpack_strict(self):
+        @literal(set, strict=True)
+        def bar_set(self):
+            return "correct"
+        
+        a = {1, 2, 3}
+        b = {4, 5, 6}
+        try:
+            self.assertEqual({*a, *b}.bar_set, "correct", "set hook failed")
+        finally:
+            unliteral(set, "bar_set")
+
+        with self.assertRaises(AttributeError, msg="set unhook failed"):
+            {*a, *b}.bar_set
+    
+    def test_dict_unpack_strict(self):
+        @literal(dict, strict=True)
+        def bar_dict(self):
+            return "correct"
+        
+        a = {1: 1, 2: 2, 3: 3}
+        b = {4: 4, 5: 5, 6: 6}
+        try:
+            self.assertEqual({**a, **b}.bar_dict, "correct", "dict hook failed")
+        finally:
+            unliteral(dict, "bar_dict")
+
+        with self.assertRaises(AttributeError, msg="dict unhook failed"):
+            {**a, **b}.bar_dict
+    
+    def test_implicit_string_concat_strict(self):
+        @literal(str, strict=True)
+        def bar_str(self):
+            return "correct"
+        
+        try:
+            self.assertEqual("1" "2" "3".bar_str, "correct", "implicit string concat hook failed")
+        finally:
+            unliteral(str, "bar_str")
+
+        with self.assertRaises(AttributeError, msg="implicit string concat unhook failed"):
+            "1" "2" "3".bar_str
 
 if __name__ == '__main__':
     unittest.main()
