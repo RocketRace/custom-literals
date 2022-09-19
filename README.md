@@ -83,7 +83,7 @@ Custom literals are defined for literal values of the following types:
 | `float` | `3.14.x` | |
 | `complex` | `1j.x` | |
 | `bool` | `True.x` | Since `bool` is a subclass of `int`, `int` hooks may influence `bool` as well. |
-| `str` | `"hello".x` | F-strings (`f"{a}".x`) are also supported. |
+| `str` | `"hello".x` | F-strings (`f"{a}".x`) are also supported. The string will be formatted *before* the literal suffix is applied. |
 | `bytes` | `b"hello".x` | |
 | `None` | `None.x` | |
 | `Ellipsis` | `....x` | Yes, this is valid syntax. |
