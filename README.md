@@ -175,17 +175,17 @@ to emulate UDLs in Python, with syntactic sugar comparable to C++ in elegance.
 But *really*, why?
 -------------------
 
-Because it's posssible.
+Because it's possible.
 
 How? (please keep it short)
 --------------------------
 
 `custom-literals` works by patching builtin types with custom objects satisfying the 
 [descriptor protocol](https://docs.python.org/3/howto/descriptor.html), similar to 
-the builtin `property` decorator. The patching is done trough a "backend", which 
+the builtin `property` decorator. The patching is done through a "backend", which 
 is an interface implementing functions to mutate the `__dict__` of builtin types. 
 If `strict=True` mode is enabled, the descriptor will also traverse stack frames 
-backwards to the invokation site of the literal suffix, and check the most recently 
+backwards to the invocation site of the literal suffix, and check the most recently 
 executed bytecode opcode to ensure that the literal suffix was invoked on a literal value.
 
 How? (I love detail)
@@ -225,11 +225,11 @@ MyClass().x
 ```
 
 `custom-literals` patches builtin types with objects implementing the same protocol, 
-allowing for user-defined & library-defiend code to be executed when invoking a literal
+allowing for user-defined & library-defined code to be executed when invoking a literal
 suffix on a builtin type. It cannot however use `@property` directly, as elaborated
 below.
 
-The descriptor protocol is very flexible, used as the the backbone of bound methods, 
+The descriptor protocol is very flexible, used as the backbone of bound methods, 
 class methods, and static methods and more. It is defined by the presence of one
 of the following methods\*:
 
